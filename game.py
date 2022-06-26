@@ -132,6 +132,8 @@ def reset_timer_and_seed():
 
 
 if __name__ == '__main__':
+    with open("learning_curve.txt", 'w') as f:
+        pass
     pygame.init()
     screen = pygame.display.set_mode((global_variables['screen_width'], global_variables['screen_height']))
     pygame.display.set_caption(global_variables['title'])
