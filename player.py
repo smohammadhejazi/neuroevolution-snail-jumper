@@ -1,6 +1,7 @@
 import random
 
 import pygame
+import numpy as np
 from variables import global_variables
 from nn import NeuralNetwork
 
@@ -35,7 +36,32 @@ class Player(pygame.sprite.Sprite):
         if self.game_mode == "Neuroevolution":
             self.fitness = 0  # Initial fitness
 
-            layer_sizes = [3, 10, 2]  # TODO (Design your architecture here by changing the values)
+            layer_sizes = [7, 5, 1]  # TODO (Design your architecture here by changing the values)
+            # parameters for calculating in think
+            self.PLAYER_MIN_X = 177
+            self.PLAYER_MAX_X = 388
+            self.PLAYER_MIN_Y = 640
+            self.PLAYER_MAX_Y = 640
+
+            self.OBSTACLE_MIN_X = 177
+            self.OBSTACLE_MAX_X = 410
+            self.OBSTACLE_MIN_Y = -100
+            self.OBSTACLE_MAX_Y = 656
+
+            self.PLAYER_X_RANGE = self.PLAYER_MAX_X - self.PLAYER_MIN_X
+            self.PLAYER_Y_RANGE = 0
+
+            self.OBSTACLE_X_RANGE = self.OBSTACLE_MAX_X - self.OBSTACLE_MIN_X
+            self.OBSTACLE_Y_RANGE = self.OBSTACLE_MAX_Y - self.OBSTACLE_MIN_Y
+
+            self.OBSTACLE_X_SHIFT = -177
+            self.OBSTACLE_Y_SHIFT = 100
+
+            # self.MIN_X_DISTANCE = -233
+            # self.MAX_X_DISTANCE = 211
+            # self.MIN_Y_DISTANCE = -16
+            # self.MAX_Y_DISTANCE = 740
+
             self.nn = NeuralNetwork(layer_sizes)
 
     def think(self, screen_width, screen_height, obstacles, player_x, player_y):
@@ -52,9 +78,47 @@ class Player(pygame.sprite.Sprite):
         :param player_y: 'y' position of the player
         """
         # TODO (change player's gravity here by calling self.change_gravity)
+        # obstacle_x range: [177, 410]
+        # obstacle_y range: [-100, 656]
+        # player_x range: [177, 388]
+        # player_y: 640
+
+        # Y_DISTANCE_RANGE = [-233, 211]
+        # MAX_X_DISTANCE = [-16, 740]
+
+        input_layer = self.generate_input(screen_width, screen_height, obstacles, player_x, player_y)
+        self.decide_change_gravity(input_layer)
 
         # This is a test code that changes the gravity based on a random number. Remove it before your implementation.
-        if random.randint(0, 2):
+        # if random.randint(0, 2):
+        #     self.change_gravity('left')
+        # else:
+        #     self.change_gravity('right')
+
+    def generate_input(self, screen_width, screen_height, obstacles, player_x, player_y):
+        input_layer = np.ones((7, 1))
+
+        # only x of player
+        input_layer[0] = player_x / (self.PLAYER_MAX_X - self.PLAYER_MIN_X)
+        # x and y of obstacles
+        if len(obstacles) > 0:
+            input_layer[1] = (obstacles[0]['x'] + self.OBSTACLE_X_SHIFT) / self.OBSTACLE_X_RANGE
+            input_layer[2] = (obstacles[0]['y'] + self.OBSTACLE_Y_SHIFT) / self.OBSTACLE_Y_RANGE
+
+        if len(obstacles) > 1:
+            input_layer[3] = (obstacles[1]['x'] + self.OBSTACLE_X_SHIFT) / self.OBSTACLE_X_RANGE
+            input_layer[4] = (obstacles[1]['y'] + self.OBSTACLE_Y_SHIFT) / self.OBSTACLE_Y_RANGE
+
+        if len(obstacles) > 2:
+            input_layer[5] = (obstacles[2]['x'] + self.OBSTACLE_X_SHIFT) / self.OBSTACLE_X_RANGE
+            input_layer[6] = (obstacles[2]['y'] + self.OBSTACLE_Y_SHIFT) / self.OBSTACLE_Y_RANGE
+
+        return input_layer
+
+    def decide_change_gravity(self, input_layer):
+        output_layer = self.nn.forward(input_layer)
+
+        if output_layer[0][0] > 0.5:
             self.change_gravity('left')
         else:
             self.change_gravity('right')
